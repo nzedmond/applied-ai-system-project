@@ -1,112 +1,73 @@
-# 🎧 Model Card: Music Recommender Simulation
+# 🎧 Model Card - Music Recommender Simulation
 
-## 1. Model Name  
+## 1. Model Name
 
-Give your model a short, descriptive name.  
-Example: 
-**VibeFinder** 
+> VibeFinder 1.0
 
 ---
 
-## 2. Intended Use  
+## 2. Goal/Task
 
-Describe what your recommender is designed to do and who it is for. 
-
-Prompts:  
-
-- What kind of recommendations does it generate  
-- What assumptions does it make about the user  
-- Is this for real users or classroom exploration  
+> VibeFinder 1.0 suggests up to 5 songs from an 18-song catalog by comparing each song's attributes against a listener's stated genre, mood, and energy preferences. It is designed for classroom exploration of content-based recommendation concepts and is not intended for deployment with real users or production music services.
 
 ---
 
-## 3. How the Model Works  
+## 3. Algorithm summary
 
-Explain your scoring approach in simple language.  
+VibeFinder looks at six things about each song: its genre, its mood, how energetic it feels (a number from 0 to 1), how danceable it is, its emotional tone (called valence — whether it sounds happy or sad), and optionally its popularity, release decade, and descriptive mood tags.
 
-Prompts:  
+A listener provides their preferences: a favorite genre, a preferred mood, and a target energy level. The system then goes through every song in the catalog and awards points based on how well the song matches those preferences. Genre and mood matches earn fixed bonuses, while energy, danceability, and valence earn partial credit the closer the song's values are to what the listener wants.
 
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
-
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
+All 18 songs receive a total score, are sorted from highest to lowest, and the top results are returned as recommendations along with a short explanation of why each song was chosen.
 
 ---
 
-## 4. Data  
+## 4. Data used
 
-Describe the dataset the model uses.  
-
-Prompts:  
-
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+- **Size:** 18 songs in `data/songs.csv`; no songs were added or removed from the original starter dataset.
+- **Genres represented:** pop, lofi, rock, ambient, jazz, synthwave, electronic, indie pop, folk, classical, hip-hop — 11 distinct genres, though pop, lofi, and electronic appear most often.
+- **Moods represented:** happy, chill, intense, relaxed, moody, focused, energetic, melancholy.
+- **Whose taste it reflects:** The catalog skews toward contemporary (2020s) Western genres with relatively high energy and danceability scores. Quieter, classical, or non-English music styles are underrepresented, so the data mostly reflects the tastes of listeners familiar with mainstream streaming genres.
 
 ---
 
-## 5. Strengths  
+## 5. Strengths
 
-Where does your system seem to work well  
-
-Prompts:  
-
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
+- **Accurate for well-represented profiles:** Listeners whose preferences align with common catalog genres (pop, lofi, rock, jazz) consistently receive a top recommendation that matches both genre and mood — for example, the Chill Lofi Listener reliably gets Library Rain as its #1 pick with a near-perfect energy match.
+- **Transparent scoring:** Every recommendation comes with a plain-language explanation showing exactly which features matched and how many points each contributed, making it easy to understand and debug.
+- **Flexible strategies:** Five scoring modes (balanced, genre-first, energy-first, mood-first, discovery) let the same system adapt to different listening contexts without retraining.
+- **Diversity control:** The optional penalty for repeated artists and overrepresented genres prevents monotonous results and better reflects expectations for a real playlist.
 
 ---
 
-## 6. Limitations and Bias 
+## 6. Observed weaknesses and bias
 
-Where the system struggles or behaves unfairly. 
-
-Prompts:  
-
-- Features it does not consider  
-- Genres or moods that are underrepresented  
-- Cases where the system overfits to one preference  
-- Ways the scoring might unintentionally favor some users  
+- **Small catalog:** With only 18 songs, some genres (classical, folk, ambient) have just one or two entries, so listeners who prefer those styles receive very limited variety.
+- **Genre dominance:** In balanced mode, a genre match alone (+2.0) outweighs a perfect energy score (+1.0) and a mood match (+1.0) combined, meaning cross-genre discoveries are rare even when another song is a better emotional fit.
+- **Uniform taste shape:** Every user is scored with the same fixed weights per mode. Real listeners prioritize features very differently — one person's dealbreaker (wrong genre) is another person's minor preference.
+- **No collaborative signal:** The system has no knowledge of what other listeners enjoy, so it cannot surface surprising discoveries the way a platform like Spotify can by finding users with similar histories.
+- **Static profiles:** Preferences never update. If a listener's mood changes mid-session, the recommendations stay fixed.
+- **Fairness risk at scale:** If deployed on a real product, the genre-weight bias would systematically under-serve niche or non-mainstream genres, reinforcing the visibility of already-popular styles.
 
 ---
 
-## 7. Evaluation  
+## 7. Evaluation process
 
-How you checked whether the recommender behaved as expected. 
-
-Prompts:  
-
-- Which user profiles you tested  
-- What you looked for in the recommendations  
-- What surprised you  
-- Any simple tests or comparisons you ran  
-
-No need for numeric metrics unless you created some.
+- **Multi-profile sanity check:** Four distinct listener profiles (High-Energy Pop Fan, Chill Lofi Listener, Deep Intense Rock, Mellow Jazz Lover) were run in balanced mode. In every case the #1 recommendation matched the expected genre, mood, and approximate energy level, confirming the core scoring logic behaves as intended.
+- **Scoring mode comparison:** The same Pop Fan profile was run across all five modes. Results changed meaningfully — energy-first promoted a hip-hop track that balanced mode ranked lower — which confirmed that weight differences produce real, observable output changes.
+- **Weight sensitivity test:** Halving the genre weight (2.0 → 1.0) caused Gym Hero to drop from #2 to #4, demonstrating that the system responds predictably to parameter changes.
+- **Diversity penalty check:** Running the Pop Fan profile with and without the penalty confirmed that enabling it prevents Max Pulse from occupying two top-five slots.
+- **Automated tests:** Unit tests in `tests/test_recommender.py` verify the scoring function and recommendation output for defined inputs.
 
 ---
 
-## 8. Future Work  
+## 8. Ideas for improvement
 
-Ideas for how you would improve the model next.  
-
-Prompts:  
-
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+- **Larger, richer catalog:** Expanding beyond 18 songs — especially adding more entries for underrepresented genres — would make the recommendations meaningfully more varied.
+- **Collaborative filtering layer:** Tracking which songs multiple users listen to together would allow the system to suggest tracks the listener has never heard but that users with similar taste consistently enjoy.
+- **Dynamic user profiles:** Updating preferences based on recent session behavior (skips, replays, session time) would let recommendations adapt to changing moods rather than relying on a fixed setup.
+- **Tempo-range and lyric-theme features:** Using `tempo_bpm` as a range preference (e.g., 100–130 BPM for running) and adding topic/lyric embeddings would capture dimensions of vibe that current numeric features miss.
+- **Group vibe recommendations:** Supporting multiple listeners simultaneously and finding songs that satisfy the overlap of all their preference profiles would be a useful social feature.
+- **Learned weights:** Instead of hand-tuning mode weights, a simple model trained on user feedback (skips and replays) could discover which features actually matter most for each listener.
 
 ---
-
-## 9. Personal Reflection  
-
-A few sentences about your experience.  
-
-Prompts:  
-
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  

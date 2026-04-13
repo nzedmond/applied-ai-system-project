@@ -1,33 +1,115 @@
 """
 Command line runner for the Music Recommender Simulation.
-
-This file helps you quickly run and test your recommender.
-
-You will implement the functions in recommender.py:
-- load_songs
-- score_song
-- recommend_songs
+Supports multiple scoring modes, diversity penalty, and tabulated output.
 """
+from recommender import load_songs, recommend_songs, SCORING_MODES
+from tabulate import tabulate
 
-from recommender import load_songs, recommend_songs
+
+def print_recommendations(profile_name: str, user_prefs: dict, results: list) -> None:
+    """Challenge 4: Display recommendations as a formatted table."""
+    print(f"\n{'='*80}")
+    print(f"  Profile: {profile_name}")
+    prefs_str = ", ".join(f"{k}={v}" for k, v in user_prefs.items() if k != "preferred_mood_tags")
+    print(f"  Preferences: {prefs_str}")
+    print(f"{'='*80}\n")
+
+    table_data = []
+    for i, (song, score, explanation) in enumerate(results, 1):
+        table_data.append([
+            i,
+            song["title"],
+            song["artist"],
+            song["genre"],
+            f"{score:.2f}",
+            explanation,
+        ])
+
+    headers = ["#", "Title", "Artist", "Genre", "Score", "Reasons"]
+    print(tabulate(table_data, headers=headers, tablefmt="rounded_grid", maxcolwidths=[3, 20, 15, 12, 6, 50]))
+    print()
 
 
 def main() -> None:
-    songs = load_songs("data/songs.csv") 
+    songs = load_songs("../data/songs.csv")
 
-    # Starter example profile
-    user_prefs = {"genre": "pop", "mood": "happy", "energy": 0.8}
+    # --- Core profiles ---
+    profiles = {
+        "High-Energy Pop Fan": {
+            "genre": "pop", "mood": "happy", "energy": 0.85,
+            "danceability": 0.8, "valence": 0.8,
+        },
+        "Chill Lofi Listener": {
+            "genre": "lofi", "mood": "chill", "energy": 0.35,
+            "danceability": 0.55, "valence": 0.6,
+        },
+        "Deep Intense Rock": {
+            "genre": "rock", "mood": "intense", "energy": 0.9,
+            "danceability": 0.7, "valence": 0.5,
+        },
+        "Mellow Jazz Lover": {
+            "genre": "jazz", "mood": "relaxed", "energy": 0.3,
+            "danceability": 0.45, "valence": 0.7,
+        },
+    }
 
-    recommendations = recommend_songs(user_prefs, songs, k=5)
+    # -------------------------------------------------------
+    # Part A: Default balanced mode
+    # -------------------------------------------------------
+    print("\n" + "="*80)
+    print("  SCORING MODE: balanced (default)")
+    print("="*80)
+    for name, prefs in profiles.items():
+        results = recommend_songs(prefs, songs, k=5, mode="balanced")
+        print_recommendations(name, prefs, results)
 
-    print("\nTop recommendations:\n")
-    for rec in recommendations:
-        # You decide the structure of each returned item.
-        # A common pattern is: (song, score, explanation)
-        song, score, explanation = rec
-        print(f"{song['title']} - Score: {score:.2f}")
-        print(f"Because: {explanation}")
-        print()
+    # -------------------------------------------------------
+    # Part B: Challenge 2 — Compare scoring modes for one profile
+    # -------------------------------------------------------
+    test_profile_name = "High-Energy Pop Fan"
+    test_prefs = profiles[test_profile_name]
+
+    print("\n" + "#"*80)
+    print("  CHALLENGE 2: Comparing Scoring Modes")
+    print(f"  Profile: {test_profile_name}")
+    print("#"*80)
+
+    for mode_name in ["balanced", "genre-first", "energy-first", "mood-first"]:
+        print(f"\n--- Mode: {mode_name} ---")
+        results = recommend_songs(test_prefs, songs, k=5, mode=mode_name)
+        print_recommendations(test_profile_name, test_prefs, results)
+
+    # -------------------------------------------------------
+    # Part C: Challenge 3 — Diversity penalty demo
+    # -------------------------------------------------------
+    print("\n" + "#"*80)
+    print("  CHALLENGE 3: Diversity Penalty Comparison")
+    print("#"*80)
+
+    print("\n--- WITHOUT diversity penalty ---")
+    results_no_div = recommend_songs(test_prefs, songs, k=5, mode="balanced", diversity_penalty=False)
+    print_recommendations(test_profile_name, test_prefs, results_no_div)
+
+    print("\n--- WITH diversity penalty ---")
+    results_div = recommend_songs(test_prefs, songs, k=5, mode="balanced", diversity_penalty=True)
+    print_recommendations(test_profile_name, test_prefs, results_div)
+
+    # -------------------------------------------------------
+    # Part D: Challenge 1 — Discovery mode with mood tags
+    # -------------------------------------------------------
+    print("\n" + "#"*80)
+    print("  CHALLENGE 1: Discovery Mode with Advanced Features")
+    print("#"*80)
+
+    discovery_profile = {
+        "genre": "electronic", "mood": "energetic", "energy": 0.85,
+        "danceability": 0.8, "valence": 0.7,
+        "preferred_decade": "2020s",
+        "preferred_mood_tags": ["euphoric", "driving", "uplifting"],
+    }
+    results_disc = recommend_songs(discovery_profile, songs, k=5, mode="discovery")
+    print_recommendations("Discovery Explorer", discovery_profile, results_disc)
+
 
 
 if __name__ == "__main__":
