@@ -4,6 +4,8 @@
 
 This project models a content-based music recommendation engine. Working from a library of 18 songs—each described by attributes such as genre, mood, energy, danceability, valence, popularity, release decade, and mood tags—the system compares every song to a listener's taste profile, then returns a ranked shortlist of suggestions along with brief explanations. It offers several scoring strategies, a diversity-aware re-ranking step, and a clean table-based output.
 
+The system also features a **RAG (Retrieval-Augmented Generation) pipeline** that lets users describe what they want in plain English (e.g., *"something chill for studying late at night"*). Song metadata is embedded into a vector store using sentence-transformers, and semantic search retrieves the most relevant matches. When an OpenAI API key is configured, the retrieved songs are passed to an LLM that generates natural, conversational recommendations explaining why each song fits.
+
 ---
 
 ## How The System Works
@@ -47,6 +49,26 @@ Three extra columns exist in the dataset: popularity (0–100), release_decade, 
 - The catalog is small (18 songs) with an uneven spread across genres
 - Every listener is evaluated with the same mode weights — actual listeners prioritize features differently
 
+### RAG Pipeline (Advanced Feature)
+
+The RAG system adds a natural-language interface on top of the existing recommender:
+
+1. **Indexing:** Each song's metadata is converted into a descriptive text and embedded into a ChromaDB vector store using the `all-MiniLM-L6-v2` sentence-transformer model (runs locally, no API key needed).
+2. **Retrieval:** When a user types a natural-language query, the system finds the top-k most semantically similar songs using cosine distance.
+3. **Generation:** The retrieved songs are passed to an OpenAI LLM, which generates ranked recommendations with explanations grounded in the actual song data. If no API key is configured, a structured fallback response is generated instead.
+
+**Key design decisions:**
+- Embeddings run locally (sentence-transformers) — the core search always works without external APIs
+- ChromaDB persists to disk, so re-indexing is skipped on subsequent runs
+- The LLM is constrained by a system prompt to only recommend songs from the retrieved set (no hallucination)
+- All operations are logged to `recommender.log` for debugging and auditability
+
+### Guardrails and Logging
+- All modules use Python's `logging` module, writing to both console and `recommender.log`
+- The LLM client gracefully falls back when no API key is present or when API calls fail
+- Empty queries and empty collections are handled with clear warnings
+- The system prompt instructs the LLM not to invent songs outside the catalog
+
 ---
 
 ## Getting Started
@@ -80,7 +102,7 @@ python main.py
 ### Run tests
 
 ```bash
-pytest
+pytest tests/ -v
 ```
 
 ---
