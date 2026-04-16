@@ -59,10 +59,22 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Configure the LLM (optional)
+
+The system uses RAG (Retrieval-Augmented Generation) with a local embedding model that works out of the box. For richer, AI-generated explanations, add an OpenAI API key:
+
+```bash
+cp .env.example .env
+# Edit .env and add your OpenAI API key
+```
+
+Without an API key, the system still works fully — it uses semantic search and returns structured recommendations with similarity scores.
+
 ### Run the app
 
 ```bash
-python -m src.main
+cd src
+python main.py
 ```
 
 ### Run tests
