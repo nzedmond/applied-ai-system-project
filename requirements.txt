@@ -1,3 +1,8 @@
 pandas
 pytest
 streamlit
+tabulate
+chromadb
+sentence-transformers
+openai
+python-dotenv
