@@ -60,9 +60,8 @@ def main() -> None:
     rag.index_songs(songs)
     logger.info("RAG engine ready with %d songs", rag.count())
 
-    # -------------------------------------------------------
-    # Part A: Default balanced mode (original scoring)
-    # -------------------------------------------------------
+    # --- Core profiles ---
+    profiles = {
         "High-Energy Pop Fan": {
             "genre": "pop", "mood": "happy", "energy": 0.85,
             "danceability": 0.8, "valence": 0.8,
@@ -82,7 +81,7 @@ def main() -> None:
     }
 
     # -------------------------------------------------------
-    # Part A: Default balanced mode
+    # Part A: Default balanced mode (original scoring)
     # -------------------------------------------------------
     print("\n" + "="*80)
     print("  SCORING MODE: balanced (default)")
@@ -138,7 +137,55 @@ def main() -> None:
     results_disc = recommend_songs(discovery_profile, songs, k=5, mode="discovery")
     print_recommendations("Discovery Explorer", discovery_profile, results_disc)
 
+    # -------------------------------------------------------
+    # Part E: RAG-powered natural language recommendations
+    # -------------------------------------------------------
+    print("\n" + "#"*80)
+    print("  RAG-POWERED NATURAL LANGUAGE RECOMMENDATIONS")
+    print("#"*80)
+
+    demo_queries = [
+        "something chill and mellow for studying late at night",
+        "high energy workout music that makes me want to run faster",
+        "feel-good songs for a sunny road trip with friends",
+    ]
+
+    for query in demo_queries:
+        print(f"\n{'─'*80}")
+        print(f"  Query: \"{query}\"")
+        print(f"{'─'*80}")
+        retrieved = rag.search(query, k=5)
+        logger.info("Retrieved %d songs for query: %s", len(retrieved), query)
+        response = generate_recommendation(query, retrieved)
+        print(f"\n{response}\n")
+
+    # -------------------------------------------------------
+    # Part F: Interactive RAG query loop
+    # -------------------------------------------------------
+    print("\n" + "#"*80)
+    print("  INTERACTIVE MODE — Ask for music in plain English")
+    print("  Type 'quit' or 'exit' to stop.")
+    print("#"*80)
+
+    while True:
+        try:
+            user_query = input("\n🎵 What kind of music are you looking for? > ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nGoodbye!")
+            break
+
+        if not user_query:
+            continue
+        if user_query.lower() in ("quit", "exit", "q"):
+            print("Goodbye!")
+            break
+
+        logger.info("User query: %s", user_query)
+        retrieved = rag.search(user_query, k=5)
+        response = generate_recommendation(user_query, retrieved)
+        print(f"\n{response}")
 
 
 if __name__ == "__main__":
     main()
+
