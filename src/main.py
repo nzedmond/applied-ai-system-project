@@ -1,9 +1,29 @@
 """
 Command line runner for the Music Recommender Simulation.
-Supports multiple scoring modes, diversity penalty, and tabulated output.
+Supports multiple scoring modes, diversity penalty, tabulated output,
+and RAG-powered natural language queries.
 """
+import logging
+import os
+import sys
+
 from recommender import load_songs, recommend_songs, SCORING_MODES
+from rag_engine import RAGEngine, build_rag_engine, _song_to_text
+from llm_client import generate_recommendation
 from tabulate import tabulate
+
+# ---------------------------------------------------------------------------
+# Logging setup
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.FileHandler("recommender.log", encoding="utf-8"),
+        logging.StreamHandler(sys.stdout),
+    ],
+)
+logger = logging.getLogger(__name__)
 
 
 def print_recommendations(profile_name: str, user_prefs: dict, results: list) -> None:
@@ -31,10 +51,18 @@ def print_recommendations(profile_name: str, user_prefs: dict, results: list) ->
 
 
 def main() -> None:
-    songs = load_songs("../data/songs.csv")
+    csv_path = os.path.join(os.path.dirname(__file__), "..", "data", "songs.csv")
+    songs = load_songs(csv_path)
 
-    # --- Core profiles ---
-    profiles = {
+    # --- Build RAG engine (indexes songs on first run, reuses on subsequent) ---
+    persist_dir = os.path.join(os.path.dirname(__file__), "..", "chroma_db")
+    rag = RAGEngine(persist_dir=persist_dir)
+    rag.index_songs(songs)
+    logger.info("RAG engine ready with %d songs", rag.count())
+
+    # -------------------------------------------------------
+    # Part A: Default balanced mode (original scoring)
+    # -------------------------------------------------------
         "High-Energy Pop Fan": {
             "genre": "pop", "mood": "happy", "energy": 0.85,
             "danceability": 0.8, "valence": 0.8,
