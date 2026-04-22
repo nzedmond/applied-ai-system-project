@@ -106,16 +106,16 @@ def generate_recommendation(
         return _fallback_response(query, retrieved_songs)
 
     try:
-        import openai
+        from openai import OpenAI
 
-        openai.api_key = api_key
+        client = OpenAI(api_key=api_key)
 
         system_msg = _build_system_prompt()
         user_msg = _build_user_prompt(query, retrieved_songs)
 
         logger.info("Calling OpenAI %s with %d retrieved songs", model, len(retrieved_songs))
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_msg},
@@ -125,7 +125,7 @@ def generate_recommendation(
             max_tokens=600,
         )
 
-        result = response.choices[0].message["content"].strip()
+        result = response.choices[0].message.content.strip()
         logger.info("LLM response received (%d chars)", len(result))
         return result
 

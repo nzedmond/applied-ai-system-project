@@ -99,6 +99,14 @@ cd src
 python main.py
 ```
 
+### Run the Streamlit GUI
+
+```bash
+streamlit run src/streamlit_app.py
+```
+
+The Streamlit interface adds a music-themed GUI where users can describe the kind of song they want in plain English and get ranked recommendations with explanations.
+
 ### Run tests
 
 ```bash
